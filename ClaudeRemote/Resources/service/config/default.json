@@ -26,7 +26,6 @@
     "checkDirectoryPermissions": true
   },
   "pty": {
-    "defaultDirectory": "/Users",
     "sessionTimeout": 1800000,
     "terminalRows": 24,
     "terminalCols": 80,

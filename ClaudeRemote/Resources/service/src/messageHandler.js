@@ -125,11 +125,8 @@ class MessageHandler {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
       
-      const { directory, session_name, skip_permissions } = message.data;
-
-      if (!directory) {
-        return this.sendError(ws, 'DIRECTORY_REQUIRED', 'Directory is required', false);
-      }
+      const { directory: rawDir, session_name, skip_permissions } = message.data;
+      const directory = (rawDir && rawDir.trim()) || '~';
 
       const result = await this.sessionManager.createClaudeSession(
         directory,

@@ -1,42 +1,19 @@
 const pty = require('node-pty');
 const fs = require('fs');
+const os = require('os');
 
-/**
- * PTY Interface - Direct Claude Code process management without tmux
- * Eliminates input hanging issues by using native terminal environment
- */
 class PTYInterface {
   constructor(config) {
     this.config = config;
-    this.defaultDirectory = config.pty?.defaultDirectory || process.cwd();
-    this.processes = new Map(); // sessionId -> { ptyProcess, info }
-    this.sessionTimeout = config.pty?.sessionTimeout || 24 * 60 * 60 * 1000; // 24 hours
-    
-    console.log('📟 PTYInterface initialized for direct Claude Code processes');
-    
-    // Check Claude Code availability on startup
-    this.checkClaudeAvailability();
-  }
-  
-  async checkClaudeAvailability() {
-    try {
-      const { spawn } = require('child_process');
-      const claude = spawn('which', ['claude']);
-      
-      claude.on('exit', (code) => {
-        if (code === 0) {
-          console.log('✅ Claude Code is available');
-        } else {
-          console.error('❌ Claude Code is not available. Please install Claude Code CLI');
-        }
-      });
-      
-      claude.on('error', () => {
-        console.error('❌ Error checking Claude availability');
-      });
-    } catch (error) {
-      console.error('❌ Error checking Claude availability:', error);
-    }
+    this.processes = new Map();
+    this.sessionTimeout = config.pty?.sessionTimeout || 24 * 60 * 60 * 1000;
+
+    this._claudePath = require('child_process')
+      .execSync('which claude 2>/dev/null || echo ""')
+      .toString().trim() || 'claude';
+    console.log(this._claudePath === 'claude'
+      ? '⚠️  claude not found in PATH — sessions may fail'
+      : `✅ Claude Code found at: ${this._claudePath}`);
   }
   
   /**
@@ -44,17 +21,12 @@ class PTYInterface {
    */
   async createClaudeSession(sessionId, workingDirectory, skipPermissions = false) {
     try {
-      const directory = workingDirectory || this.defaultDirectory;
+      const directory = workingDirectory || os.homedir();
 
-      // Validate directory
       if (!fs.existsSync(directory)) {
-        return {
-          success: false,
-          error: `Directory does not exist: ${directory}`
-        };
+        return { success: false, error: `Directory does not exist: ${directory}` };
       }
 
-      // Idempotency: return existing process if already alive
       const existing = this.processes.get(sessionId);
       if (existing && !existing.ptyProcess.killed) {
         console.log(`♻️  Reusing existing PTY session: ${sessionId}`);
@@ -63,10 +35,8 @@ class PTYInterface {
 
       console.log(`🚀 Creating Claude PTY session: ${sessionId} in ${directory}`);
 
-      // Spawn Claude Code directly with PTY
-      const claudePath = require('child_process').execSync('which claude 2>/dev/null || echo ""').toString().trim() || 'claude';
       const claudeArgs = skipPermissions ? ['--dangerously-skip-permissions'] : [];
-      const claudeProcess = pty.spawn(claudePath, claudeArgs, {
+      const claudeProcess = pty.spawn(this._claudePath, claudeArgs, {
         name: 'xterm-256color',
         cols: 80,
         rows: 24,
@@ -128,12 +98,10 @@ class PTYInterface {
    */
   async resumeClaudeSession(historySessionId, workingDirectory, skipPermissions = false) {
     try {
-      const os = require('os');
       const directory = (workingDirectory && fs.existsSync(workingDirectory))
         ? workingDirectory
         : os.homedir();
 
-      // Idempotency: return existing process if already alive
       const existing = this.processes.get(historySessionId);
       if (existing && !existing.ptyProcess.killed) {
         console.log(`♻️  Reusing existing PTY session: ${historySessionId}`);
@@ -142,11 +110,10 @@ class PTYInterface {
 
       console.log(`🔄 Resuming Claude session: ${historySessionId} in ${directory}`);
 
-      const claudePath = require('child_process').execSync('which claude 2>/dev/null || echo ""').toString().trim() || 'claude';
       const resumeArgs = skipPermissions
         ? ['--dangerously-skip-permissions', '--resume', historySessionId]
         : ['--resume', historySessionId];
-      const claudeProcess = pty.spawn(claudePath, resumeArgs, {
+      const claudeProcess = pty.spawn(this._claudePath, resumeArgs, {
         name: 'xterm-256color',
         cols: 80,
         rows: 24,

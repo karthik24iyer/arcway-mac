@@ -61,9 +61,11 @@ class AgentService {
 
     private func shellEnvironment() -> [String: String] {
         let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
+        // fish doesn't support -i with -c; zsh/bash do
+        let args = shell.hasSuffix("fish") ? ["-l", "-c", "env"] : ["-l", "-i", "-c", "env"]
         let p = Process()
         p.executableURL = URL(fileURLWithPath: shell)
-        p.arguments     = ["-l", "-i", "-c", "env"]
+        p.arguments     = args
         let out = Pipe()
         p.standardOutput = out
         p.standardError  = Pipe()
