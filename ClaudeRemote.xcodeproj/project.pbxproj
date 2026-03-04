@@ -266,7 +266,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.clauderemote.app;
-				PRODUCT_NAME = Ragent;
+				PRODUCT_NAME = Tholai;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -283,7 +283,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.clauderemote.app;
-				PRODUCT_NAME = Ragent;
+				PRODUCT_NAME = Tholai;
 				SDKROOT = macosx;
 			};
 			name = Debug;
