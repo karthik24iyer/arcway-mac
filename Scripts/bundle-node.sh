@@ -3,7 +3,7 @@ set -e
 
 RESOURCES_DIR="ClaudeRemote/Resources"
 NODE_VERSION="20.18.2"   # LTS
-SERVICE_SRC="../claude-remote-service"
+SERVICE_SRC="../arcway-backend"
 
 mkdir -p "$RESOURCES_DIR/service"
 
