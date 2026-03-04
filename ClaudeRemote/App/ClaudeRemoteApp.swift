@@ -63,12 +63,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func menuBarImage(connected: Bool) -> NSImage {
-        let img = NSImage(named: "MenuBarIcon")!
-        guard connected else { return img }
+        let base = NSImage(named: "MenuBarIcon")!
+        base.isTemplate = true
+        guard connected else { return base }
         let size = NSSize(width: 18, height: 18)
         let composite = NSImage(size: size)
         composite.lockFocus()
-        img.draw(in: NSRect(origin: .zero, size: size))
+        base.draw(in: NSRect(origin: .zero, size: size))
         NSColor.systemGreen.setFill()
         NSBezierPath(ovalIn: NSRect(x: 11, y: 0, width: 7, height: 7)).fill()
         composite.unlockFocus()
