@@ -1,0 +1,53 @@
+{
+  "server": {
+    "port": 8080,
+    "host": "0.0.0.0"
+  },
+  "auth": {
+    "jwtSecret": "GENERATE_ON_FIRST_RUN",
+    "jwtExpiresIn": "24h",
+    "bcryptRounds": 12
+  },
+  "session": {
+    "maxSessions": 10,
+    "sessionPrefix": "claude-",
+    "sessionTimeout": 1800000,
+    "cleanupInterval": 300000,
+    "persistence": {
+      "enabled": true,
+      "file": "./data/sessions.json",
+      "autoSaveInterval": 30000
+    },
+    "allowedDirectories": [],
+    "blockedDirectories": ["/etc", "/var", "/usr", "/bin", "/sbin", "/root"],
+    "maxSessionNameLength": 50,
+    "allowedSessionNamePattern": "^[a-zA-Z0-9\\s\\-_\\.]+$",
+    "requireDirectoryExists": true,
+    "checkDirectoryPermissions": true
+  },
+  "pty": {
+    "defaultDirectory": "/Users",
+    "sessionTimeout": 1800000,
+    "terminalRows": 24,
+    "terminalCols": 80,
+    "environment": {
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor"
+    }
+  },
+  "terminal": {
+    "bufferSize": 1000,
+    "encoding": "utf8",
+    "outputThrottleMs": 500,
+    "maxOutputLines": 1000
+  },
+  "security": {
+    "rateLimitWindowMs": 900000,
+    "rateLimitMaxRequests": 100,
+    "allowedOrigins": ["*"]
+  },
+  "relay": {
+    "url": "",
+    "deviceToken": ""
+  }
+}

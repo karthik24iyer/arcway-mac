@@ -1,0 +1,31 @@
+{
+  "name": "claude-remote-service",
+  "version": "1.0.0",
+  "description": "WebSocket service for remote Claude Code terminal access",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "pkill -f 'node src/server.js' 2>/dev/null; sleep 0.5; HOST=0.0.0.0 node src/server.js",
+    "dev": "HOST=0.0.0.0 nodemon src/server.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "express": "^4.18.0",
+    "jsonwebtoken": "^9.0.0",
+    "node-pty": "^1.1.0",
+    "uuid": "^9.0.0",
+    "ws": "^8.14.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "nodemon": "^3.0.0"
+  },
+  "keywords": [
+    "claude",
+    "terminal",
+    "remote",
+    "websocket"
+  ],
+  "author": "Claude Remote Terminal",
+  "license": "MIT"
+}

@@ -1,0 +1,357 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0DF02123C4CDE5E4E54DE4B0 /* ClaudeRemoteApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12998B753A87D179D95B2C64 /* ClaudeRemoteApp.swift */; };
+		13C6F79DA08CA5E16040FE6B /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9666319D2CBF9A15A8487180 /* AppState.swift */; };
+		8F203A33EF41ED15295DB2D0 /* AgentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A56D42E5C3538420FF3EBADB /* AgentService.swift */; };
+		8FD5580D5E18E5E1B4CD0C56 /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44420BD7413FCB92B44B52A2 /* PopoverView.swift */; };
+		A09D41B986F2F6552C7CD38D /* ConnectedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6729FF2111FF981B8E3F7CD4 /* ConnectedView.swift */; };
+		B635640FB6E61F9963713189 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A9F678A37FD746AFE03DB650 /* Assets.xcassets */; };
+		EB9180444C360AFFC2D59906 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5ADC9806F68FC4836D37AD9 /* AuthService.swift */; };
+		F5B54118F7DBA2F8CD0A39CF /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D318436DD234E3A18F0B09E /* KeychainService.swift */; };
+		FDA340F27D9E82249F8AB01C /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F018549B1B539302E1D27F9 /* LoginView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		12998B753A87D179D95B2C64 /* ClaudeRemoteApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeRemoteApp.swift; sourceTree = "<group>"; };
+		1D318436DD234E3A18F0B09E /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
+		3F018549B1B539302E1D27F9 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		415C3A92863A4D8168E627C8 /* ClaudeRemote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClaudeRemote.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		44420BD7413FCB92B44B52A2 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
+		6729FF2111FF981B8E3F7CD4 /* ConnectedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedView.swift; sourceTree = "<group>"; };
+		9666319D2CBF9A15A8487180 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		A56D42E5C3538420FF3EBADB /* AgentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentService.swift; sourceTree = "<group>"; };
+		A9F678A37FD746AFE03DB650 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B5ADC9806F68FC4836D37AD9 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		3E502825DDE32F557D791520 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				6729FF2111FF981B8E3F7CD4 /* ConnectedView.swift */,
+				3F018549B1B539302E1D27F9 /* LoginView.swift */,
+				44420BD7413FCB92B44B52A2 /* PopoverView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		431F5D101EF2C6938C439961 = {
+			isa = PBXGroup;
+			children = (
+				B004280AC8735F0BD7A315F6 /* ClaudeRemote */,
+				4CDE0F4356F7FAEE33CFC70B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4CDE0F4356F7FAEE33CFC70B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				415C3A92863A4D8168E627C8 /* ClaudeRemote.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7A44A0F2588C896E2D6C745E /* App */ = {
+			isa = PBXGroup;
+			children = (
+				9666319D2CBF9A15A8487180 /* AppState.swift */,
+				12998B753A87D179D95B2C64 /* ClaudeRemoteApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		B004280AC8735F0BD7A315F6 /* ClaudeRemote */ = {
+			isa = PBXGroup;
+			children = (
+				A9F678A37FD746AFE03DB650 /* Assets.xcassets */,
+				7A44A0F2588C896E2D6C745E /* App */,
+				B506EF13013DF64EA65B73C6 /* Services */,
+				3E502825DDE32F557D791520 /* Views */,
+			);
+			path = ClaudeRemote;
+			sourceTree = "<group>";
+		};
+		B506EF13013DF64EA65B73C6 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A56D42E5C3538420FF3EBADB /* AgentService.swift */,
+				B5ADC9806F68FC4836D37AD9 /* AuthService.swift */,
+				1D318436DD234E3A18F0B09E /* KeychainService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F3929B3B91E1AC5D20ABF740 /* ClaudeRemote */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F7AE8F0989E05A9D9DF5140B /* Build configuration list for PBXNativeTarget "ClaudeRemote" */;
+			buildPhases = (
+				025D250E4697B06E78AA64B9 /* Sources */,
+				CCD7B67460A4FD90273D9A28 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ClaudeRemote;
+			packageProductDependencies = (
+			);
+			productName = ClaudeRemote;
+			productReference = 415C3A92863A4D8168E627C8 /* ClaudeRemote.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B37677F843B9E2E61127C71A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					F3929B3B91E1AC5D20ABF740 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 1682F7F6264A22AC6FCDD9BD /* Build configuration list for PBXProject "ClaudeRemote" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 431F5D101EF2C6938C439961;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F3929B3B91E1AC5D20ABF740 /* ClaudeRemote */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CCD7B67460A4FD90273D9A28 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B635640FB6E61F9963713189 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		025D250E4697B06E78AA64B9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8F203A33EF41ED15295DB2D0 /* AgentService.swift in Sources */,
+				13C6F79DA08CA5E16040FE6B /* AppState.swift in Sources */,
+				EB9180444C360AFFC2D59906 /* AuthService.swift in Sources */,
+				0DF02123C4CDE5E4E54DE4B0 /* ClaudeRemoteApp.swift in Sources */,
+				A09D41B986F2F6552C7CD38D /* ConnectedView.swift in Sources */,
+				F5B54118F7DBA2F8CD0A39CF /* KeychainService.swift in Sources */,
+				FDA340F27D9E82249F8AB01C /* LoginView.swift in Sources */,
+				8FD5580D5E18E5E1B4CD0C56 /* PopoverView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		559A7534B608A762B4F0BC8C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		7778E938B8298DD8865C2604 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "ClaudeRemote/Supporting Files/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.clauderemote.app;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		80E2CD191D03DFD457A63E57 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "ClaudeRemote/Supporting Files/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.clauderemote.app;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		DCF259C48848F2E18129CE18 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1682F7F6264A22AC6FCDD9BD /* Build configuration list for PBXProject "ClaudeRemote" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DCF259C48848F2E18129CE18 /* Debug */,
+				559A7534B608A762B4F0BC8C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F7AE8F0989E05A9D9DF5140B /* Build configuration list for PBXNativeTarget "ClaudeRemote" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				80E2CD191D03DFD457A63E57 /* Debug */,
+				7778E938B8298DD8865C2604 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B37677F843B9E2E61127C71A /* Project object */;
+}
