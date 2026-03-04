@@ -24,7 +24,7 @@ struct PopoverView: View {
 private struct ConnectingView: View {
     var body: some View {
         VStack(spacing: 12) {
-            Text("Claude Remote").font(.headline)
+            Text("Arcway").font(.headline)
             HStack(spacing: 6) {
                 ProgressView().scaleEffect(0.7)
                 Text("Connecting...").foregroundColor(.secondary)
@@ -38,7 +38,7 @@ private struct ErrorView: View {
     let message: String
     var body: some View {
         VStack(spacing: 12) {
-            Text("Claude Remote").font(.headline)
+            Text("Arcway").font(.headline)
             Text(message).font(.caption).foregroundColor(.red).multilineTextAlignment(.center)
             Button("Retry") { AgentService.shared.start() }.buttonStyle(.borderedProminent)
         }

@@ -6,7 +6,7 @@ struct LoginView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Claude Remote").font(.headline)
+            Text("Arcway").font(.headline)
             if let error = errorMessage {
                 Text(error).font(.caption).foregroundColor(.red).multilineTextAlignment(.center)
             }

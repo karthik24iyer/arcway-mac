@@ -8,9 +8,9 @@ enum KeychainKey: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .sessionToken:     return "ClaudeRemote Session"
-        case .deviceCredential: return "ClaudeRemote Device"
-        case .userEmail:        return "ClaudeRemote Account"
+        case .sessionToken:     return "Arcway Session"
+        case .deviceCredential: return "Arcway Device"
+        case .userEmail:        return "Arcway Account"
         }
     }
 }

@@ -37,7 +37,7 @@ targets:
           rsync -a --delete "${SRCROOT}/ClaudeRemote/Resources/service/" "${DEST}/service/"
     settings:
       base:
-        PRODUCT_NAME: Ragent
+        PRODUCT_NAME: Arcway
         PRODUCT_BUNDLE_IDENTIFIER: com.clauderemote.app
         INFOPLIST_FILE: "ClaudeRemote/Supporting Files/Info.plist"
         GENERATE_INFOPLIST_FILE: NO
