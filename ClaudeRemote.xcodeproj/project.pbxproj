@@ -266,6 +266,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.clauderemote.app;
+				PRODUCT_NAME = Ragent;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -282,6 +283,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.clauderemote.app;
+				PRODUCT_NAME = Ragent;
 				SDKROOT = macosx;
 			};
 			name = Debug;
