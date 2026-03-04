@@ -285,8 +285,8 @@ class SessionManager {
       let ptyStatus = await this.pty.sessionExists(sessionId);
       let session = await this.state.getSession(sessionId);
 
-      // Restart PTY if skip_permissions changed
-      if (ptyStatus.exists && session?.skipPermissions !== !!skipPermissions) {
+      // Restart PTY if skip_permissions changed (only when session has a saved skipPermissions value)
+      if (ptyStatus.exists && session != null && session.skipPermissions !== !!skipPermissions) {
         await this.pty.killSession(sessionId);
         ptyStatus = { exists: false };
       }

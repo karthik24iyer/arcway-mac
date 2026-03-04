@@ -96,6 +96,7 @@
 			buildConfigurationList = F7AE8F0989E05A9D9DF5140B /* Build configuration list for PBXNativeTarget "ClaudeRemote" */;
 			buildPhases = (
 				025D250E4697B06E78AA64B9 /* Sources */,
+				F81D62B65D814BFDD31498BA /* Copy Node and Service */,
 				CCD7B67460A4FD90273D9A28 /* Resources */,
 			);
 			buildRules = (
@@ -153,6 +154,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		F81D62B65D814BFDD31498BA /* Copy Node and Service */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Node and Service";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nDEST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nmkdir -p \"${DEST}\"\ncp \"${SRCROOT}/ClaudeRemote/Resources/node\" \"${DEST}/node\"\nchmod +x \"${DEST}/node\"\nrsync -a --delete \"${SRCROOT}/ClaudeRemote/Resources/service/\" \"${DEST}/service/\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		025D250E4697B06E78AA64B9 /* Sources */ = {

@@ -23,10 +23,18 @@ targets:
       - path: ClaudeRemote
         excludes:
           - "Supporting Files/Info.plist"
+          - "Resources/**"
     resources:
       - path: ClaudeRemote/Assets.xcassets
-      - path: ClaudeRemote/Resources
-        optional: true
+    postCompileScripts:
+      - name: Copy Node and Service
+        script: |
+          set -e
+          DEST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+          mkdir -p "${DEST}"
+          cp "${SRCROOT}/ClaudeRemote/Resources/node" "${DEST}/node"
+          chmod +x "${DEST}/node"
+          rsync -a --delete "${SRCROOT}/ClaudeRemote/Resources/service/" "${DEST}/service/"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.clauderemote.app
