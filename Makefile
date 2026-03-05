@@ -22,8 +22,8 @@ dmg: build
 		--window-pos 200 120 \
 		--window-size 600 400 \
 		--icon-size 100 \
-		--icon "ClaudeRemote.app" 150 185 \
-		--hide-extension "ClaudeRemote.app" \
+		--icon "Arcway.app" 150 185 \
+		--hide-extension "Arcway.app" \
 		--app-drop-link 450 185 \
-		"ClaudeRemote.dmg" \
-		"build/Build/Products/Release/ClaudeRemote.app"
+		"Arcway.dmg" \
+		"build/Build/Products/Release/Arcway.app"
