@@ -31,7 +31,7 @@ else
 fi
 
 # Copy service files
-echo "Copying claude-remote-service..."
+echo "Copying arcway-backend..."
 rm -rf "$RESOURCES_DIR/service"
 mkdir -p "$RESOURCES_DIR/service"
 cp -r "$SERVICE_SRC/src"    "$RESOURCES_DIR/service/"
