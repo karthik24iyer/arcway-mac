@@ -10,7 +10,6 @@ const AuthManager = require('./auth');
 const SessionManager = require('./sessionManager');
 const TerminalHandler = require('./terminalHandler');
 const MessageHandler = require('./messageHandler');
-const HealthMonitor = require('./healthMonitor');
 
 // Load configuration
 const configPath = path.join(__dirname, '..', 'config', 'default.json');
@@ -64,9 +63,6 @@ class ClaudeRemoteServer {
         this.config
       );
       
-      // Initialize health monitor
-      this.healthMonitor = new HealthMonitor(this.config, this.sessionManager, this.terminalHandler);
-      
       console.log('✅ All service components initialized successfully');
     } catch (error) {
       console.error('❌ Failed to initialize service components:', error);
@@ -81,46 +77,6 @@ class ClaudeRemoteServer {
     this.app = express();
     this.app.use(express.json({ limit: '1mb' })); // Limit request size
     
-    // Health check endpoint using integrated HealthMonitor
-    this.app.get('/health', async (req, res) => {
-      try {
-        const healthStatus = await this.healthMonitor.getHealthStatus();
-        
-        if (healthStatus.status === 'healthy') {
-          res.status(200).json(healthStatus);
-        } else {
-          res.status(500).json(healthStatus);
-        }
-      } catch (error) {
-        res.status(500).json({
-          status: 'error',
-          error: error.message,
-          timestamp: new Date().toISOString()
-        });
-      }
-    });
-
-    // Basic stats endpoint (simplified from comprehensive reporting)
-    this.app.get('/stats', async (req, res) => {
-      try {
-        const sessionStats = await this.sessionManager.getSessionStats();
-        const connectionStats = this.getBasicConnectionStats();
-        
-        res.json({
-          service: 'claude-remote-service',
-          uptime_seconds: Math.floor((Date.now() - this.startTime) / 1000),
-          sessions: sessionStats,
-          connections: connectionStats,
-          timestamp: new Date().toISOString()
-        });
-      } catch (error) {
-        res.status(500).json({
-          error: error.message,
-          timestamp: new Date().toISOString()
-        });
-      }
-    });
-
     // Authentication endpoints
     this.app.post('/auth/login', async (req, res) => {
       try {
@@ -154,142 +110,6 @@ class ClaudeRemoteServer {
           timestamp: new Date().toISOString()
         });
       }
-    });
-
-    this.app.post('/auth/register', async (req, res) => {
-      try {
-        const { username, password } = req.body;
-        
-        if (!username || !password) {
-          return res.status(400).json({
-            error: 'Username and password are required',
-            timestamp: new Date().toISOString()
-          });
-        }
-        
-        const registerResult = await this.authManager.register(username, password);
-        
-        if (registerResult.success) {
-          res.json({
-            success: true,
-            user: registerResult.user,
-            timestamp: new Date().toISOString()
-          });
-        } else {
-          res.status(400).json({
-            error: registerResult.error || 'Registration failed',
-            timestamp: new Date().toISOString()
-          });
-        }
-      } catch (error) {
-        res.status(500).json({
-          error: 'Registration failed',
-          timestamp: new Date().toISOString()
-        });
-      }
-    });
-
-    this.app.post('/auth/logout', async (req, res) => {
-      try {
-        const authHeader = req.headers.authorization;
-        const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
-        
-        if (token) {
-          await this.authManager.logout(token);
-        }
-        
-        res.json({
-          success: true,
-          message: 'Logged out successfully',
-          timestamp: new Date().toISOString()
-        });
-      } catch (error) {
-        res.status(500).json({
-          error: 'Logout failed',
-          timestamp: new Date().toISOString()
-        });
-      }
-    });
-
-    // Authentication middleware (delegates to AuthManager for unified token validation)
-    const authenticateToken = async (req, res, next) => {
-      const authHeader = req.headers['authorization'];
-      const token = authHeader && authHeader.split(' ')[1];
-
-      if (!token) {
-        return res.status(401).json({
-          error: 'Access token required',
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      try {
-        const result = await this.authManager.validateToken(token);
-        req.user = result.user;
-        next();
-      } catch (error) {
-        return res.status(403).json({
-          error: error.message || 'Invalid token',
-          timestamp: new Date().toISOString()
-        });
-      }
-    };
-
-    // Sessions API endpoint
-    this.app.get('/api/sessions', authenticateToken, async (req, res) => {
-      try {
-        const userId = req.user.username || req.user.userId || 'default';
-        const sessions = await this.sessionManager.listUserSessions(userId);
-        
-        res.json({
-          success: true,
-          sessions: sessions.map(session => ({
-            sessionId: session.sessionId,
-            name: session.sessionId,
-            directory: session.directory,
-            status: session.status,
-            created: session.created,
-            lastActivity: session.lastActivity || session.updatedAt,
-            isActive: session.isActive
-          })),
-          total: sessions.length,
-          timestamp: new Date().toISOString()
-        });
-      } catch (error) {
-        console.error('❌ Error listing sessions:', error);
-        res.status(500).json({
-          error: 'Failed to list sessions',
-          timestamp: new Date().toISOString()
-        });
-      }
-    });
-
-    // Service configuration endpoint (public info only)
-    this.app.get('/config', (req, res) => {
-      const publicConfig = {
-        server: {
-          host: this.config.server.host,
-          port: this.config.server.port,
-          maxConnections: this.maxConnections
-        },
-        session: {
-          maxSessions: this.config.session?.maxSessions || 10,
-          sessionTimeout: this.config.session?.sessionTimeout || 86400000
-        },
-        features: [
-          'authentication',
-          'session_management', 
-          'terminal_streaming'
-        ],
-        auth_endpoints: [
-          'POST /auth/login',
-          'POST /auth/register', 
-          'POST /auth/logout'
-        ],
-        websocket_url: `ws://${this.config.server.host || 'localhost'}:${this.config.server.port || 8080}`
-      };
-      
-      res.json(publicConfig);
     });
 
     console.log('🌐 Express app configured');
@@ -348,8 +168,7 @@ class ClaudeRemoteServer {
       ws: ws,
       authenticatedUser: relayUser ? {
         username: relayUser.email,
-        permissions: ['terminal_access', 'session_management'],
-        token: null
+        permissions: ['terminal_access', 'session_management']
       } : null,
       currentSession: null,
       connectedAt: new Date().toISOString(),
@@ -490,20 +309,10 @@ class ClaudeRemoteServer {
   handleConnectionClose(connectionId, connectionState) {
     console.log(`🔌 Connection closed: ${connectionId}`);
 
-    // Clean up terminal streaming if active
     if (connectionState.currentSession) {
       Promise.resolve()
-        .then(() => this.terminalHandler.detachFromSession(connectionState.currentSession))
+        .then(() => this.terminalHandler.detachFromSession(connectionState.currentSession, connectionId))
         .catch(error => console.error('Error detaching from session:', error));
-    }
-
-    // Clean up authentication
-    if (connectionState.authenticatedUser?.token) {
-      try {
-        this.authManager.logout(connectionState.authenticatedUser.token);
-      } catch (error) {
-        console.error('Error logging out:', error);
-      }
     }
 
     // Remove connection
@@ -614,10 +423,6 @@ class ClaudeRemoteServer {
         console.log('🧹 Cleaning up terminal streams...');
         await this.terminalHandler.cleanup();
         
-        // Clean up session manager
-        console.log('💾 Saving session state...');
-        await this.sessionManager.cleanupInactiveSessions();
-        
         // Close HTTP server
         console.log('📡 Closing HTTP server...');
         this.server.close(() => {
@@ -684,8 +489,6 @@ class ClaudeRemoteServer {
         console.log('=====================================');
         console.log(`🌐 Server running on ${HOST}:${PORT}`);
         console.log(`🔌 WebSocket URL: ws://${HOST}:${PORT}`);
-        console.log(`🏥 Health Check: http://${HOST}:${PORT}/health`);
-        console.log(`📊 Statistics: http://${HOST}:${PORT}/stats`);
         console.log('=====================================');
         console.log('📋 Service Status:');
         console.log('   - Authentication: ✅ Ready');
@@ -710,11 +513,6 @@ class ClaudeRemoteServer {
     setInterval(() => {
       this.authManager.cleanupExpiredSessions();
     }, 60000);
-
-    // Clean up inactive sessions every 5 minutes
-    setInterval(() => {
-      this.sessionManager.cleanupInactiveSessions();
-    }, 300000);
 
     console.log('🔄 Maintenance tasks scheduled');
   }

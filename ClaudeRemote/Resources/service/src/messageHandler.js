@@ -11,13 +11,11 @@ class MessageHandler {
     this.terminalHandler = terminalHandler;
     this.config = config;
     
-    // Message routing map (9 routes for MVP)
     this.messageRoutes = {
       'auth_request': this.handleAuthRequest.bind(this),
       'session_list_request': this.handleSessionListRequest.bind(this),
       'session_create_request': this.handleSessionCreateRequest.bind(this),
       'session_connect_request': this.handleSessionConnectRequest.bind(this),
-      'session_disconnect_request': this.handleSessionDisconnectRequest.bind(this),
       'session_status_request': this.handleSessionStatusRequest.bind(this),
       'session_terminate_request': this.handleSessionTerminateRequest.bind(this),
       'terminal_input': this.handleTerminalInput.bind(this),
@@ -130,15 +128,13 @@ class MessageHandler {
 
       const result = await this.sessionManager.createClaudeSession(
         directory,
-        session_name,
-        connectionState.authenticatedUser.username,
         !!skip_permissions
       );
-      
+
       if (result.success) {
         this.sendResponse(ws, 'session_create_response', {
           success: true,
-          session: result.session
+          session_id: result.sessionId
         });
       } else {
         this.sendError(ws, result.errorCode || 'SESSION_CREATE_FAILED', result.error, true);
@@ -162,22 +158,16 @@ class MessageHandler {
         return this.sendError(ws, 'SESSION_ID_REQUIRED', 'Session ID is required', false);
       }
 
-      const result = await this.sessionManager.connectToSession(
-        session_id,
-        connectionState.authenticatedUser.username,
-        !!skip_permissions
-      );
-      
+      const result = await this.sessionManager.connectToSession(session_id, !!skip_permissions);
+
       if (result.success) {
         connectionState.currentSession = session_id;
-        
-        // Start terminal streaming
-        await this.terminalHandler.attachToSession(session_id, ws, connectionState);
-        
+
+        await this.terminalHandler.attachToSession(session_id, connectionState.id, ws);
+
         this.sendResponse(ws, 'session_connect_response', {
           success: true,
-          session_id: session_id,
-          session: result.session
+          session_id: session_id
         });
       } else {
         this.sendError(ws, result.errorCode || 'SESSION_CONNECTION_FAILED', result.error, false);
@@ -185,46 +175,6 @@ class MessageHandler {
     } catch (error) {
       console.error('Session connection error:', error);
       this.sendError(ws, 'SESSION_CONNECTION_FAILED', error.message, false);
-    }
-  }
-
-  /**
-   * Handle session disconnection requests
-   */
-  async handleSessionDisconnectRequest(ws, message, connectionState) {
-    try {
-      if (!await this.validateAuth(ws, message, connectionState)) return;
-      
-      const { session_id } = message.data;
-      const sessionToDisconnect = session_id || connectionState.currentSession;
-      
-      if (!sessionToDisconnect) {
-        return this.sendError(ws, 'NO_ACTIVE_SESSION', 'No session to disconnect from', false);
-      }
-      
-      // Stop terminal streaming
-      await this.terminalHandler.detachFromSession(sessionToDisconnect);
-      
-      // Disconnect from session
-      const result = await this.sessionManager.disconnectFromSession(
-        sessionToDisconnect,
-        connectionState.authenticatedUser.username
-      );
-      
-      if (result.success) {
-        connectionState.currentSession = null;
-        
-        this.sendResponse(ws, 'session_disconnect_response', {
-          success: true,
-          session_id: sessionToDisconnect,
-          message: 'Disconnected successfully'
-        });
-      } else {
-        this.sendError(ws, result.errorCode || 'DISCONNECT_FAILED', result.error, true);
-      }
-    } catch (error) {
-      console.error('Session disconnection error:', error);
-      this.sendError(ws, 'DISCONNECT_FAILED', error.message, true);
     }
   }
 
@@ -275,7 +225,7 @@ class MessageHandler {
         return this.sendError(ws, 'INPUT_REQUIRED', 'Input data is required', false);
       }
       
-      await this.terminalHandler.sendInput(targetSession, input, sequence_number);
+      await this.terminalHandler.sendInput(targetSession, connectionState.id, input);
 
       // Response is handled by the terminal streaming
     } catch (error) {
@@ -302,7 +252,7 @@ class MessageHandler {
         return this.sendError(ws, 'KEY_REQUIRED', 'Key code is required', false);
       }
       
-      await this.terminalHandler.handleSpecialKeys(targetSession, key, modifiers);
+      await this.terminalHandler.handleSpecialKeys(targetSession, connectionState.id, key);
       
       // Response is handled by the terminal streaming
     } catch (error) {
@@ -329,7 +279,7 @@ class MessageHandler {
         return this.sendError(ws, 'DIMENSIONS_REQUIRED', 'Rows and cols are required', false);
       }
       
-      const result = await this.terminalHandler.resizeTerminal(targetSession, rows, cols);
+      const result = await this.terminalHandler.resizeTerminal(targetSession, connectionState.id, rows, cols);
       
       this.sendResponse(ws, 'terminal_resize_response', {
         success: true,
@@ -365,14 +315,9 @@ class MessageHandler {
         return this.sendError(ws, 'SESSION_ID_REQUIRED', 'Session ID is required', false);
       }
 
-      // Detach terminal streaming first
-      await this.terminalHandler.detachFromSession(session_id);
+      await this.terminalHandler.detachFromSession(session_id, connectionState.id);
 
-      // Terminate the session
-      const result = await this.sessionManager.terminateSession(
-        session_id,
-        connectionState.authenticatedUser.username
-      );
+      const result = await this.sessionManager.terminateSession(session_id);
 
       if (result.success) {
         if (connectionState.currentSession === session_id) {
@@ -510,7 +455,6 @@ class MessageHandler {
         'session_list_request',
         'session_create_request',
         'session_connect_request',
-        'session_disconnect_request',
         'session_status_request',
         'session_terminate_request',
         'terminal_input',
