@@ -322,16 +322,12 @@ class SessionManager {
         session.lastActivity = new Date().toISOString();
         session.isActive = true;
         await this.state.saveSession(sessionId, session);
+        console.log(`✅ Connected to session: ${sessionId}`);
+        return { success: true, session };
       }
 
       console.log(`✅ Connected to session: ${sessionId}`);
-
-      return {
-        success: true,
-        session,
-        currentOutput: '[PTY Session Connected - Use real-time streaming]',
-        terminalSize: { rows: 24, cols: 80 }
-      };
+      return { success: true, session };
     } catch (error) {
       console.error('❌ Error connecting to session:', error);
       return { success: false, error: error.message, errorCode: 'CONNECTION_ERROR' };
@@ -532,29 +528,6 @@ class SessionManager {
   async validateSessionAccess(sessionId, userId) {
     const session = await this.state.getSession(sessionId);
     return session && session.userId === userId;
-  }
-  
-  async getCurrentOutput(sessionId) {
-    // For PTY sessions, output is streamed in real-time
-    // This method is kept for compatibility but returns a placeholder
-    const result = await this.pty.capturePane(sessionId);
-    return result.success ? result.output : '';
-  }
-  
-  /**
-   * Get current output by sessionId (convenience method)
-   */
-  async getCurrentOutputBySessionId(sessionId) {
-    try {
-      const session = await this.state.getSession(sessionId);
-      if (!session || !session.sessionId) {
-        return '';
-      }
-      return await this.getCurrentOutput(session.sessionId);
-    } catch (error) {
-      console.error(`Error getting output for ${sessionId}:`, error);
-      return '';
-    }
   }
   
   sleep(ms) {

@@ -134,7 +134,10 @@ class PTYInterface {
         rows: 24
       };
 
-      this.processes.set(historySessionId, { ptyProcess: claudeProcess, info: processInfo });
+      const outputBuffer = [];
+      claudeProcess.on('data', (data) => outputBuffer.push(data));
+
+      this.processes.set(historySessionId, { ptyProcess: claudeProcess, info: processInfo, outputBuffer });
 
       claudeProcess.on('exit', () => {
         console.log(`🔚 Resumed Claude process ${historySessionId} exited`);
@@ -260,33 +263,16 @@ class PTYInterface {
     
     // Remove existing listeners to avoid duplicates
     ptyProcess.removeAllListeners('data');
-    
-    // Set up new data listener
+
+    if (session.outputBuffer?.length > 0) {
+      for (const chunk of session.outputBuffer) callback(null, chunk);
+      session.outputBuffer = null;
+    }
+
     ptyProcess.on('data', (data) => {
-      // Update last activity
       session.info.lastActivity = new Date().toISOString();
       callback(null, data);
     });
-  }
-  
-  /**
-   * Get current session output (compatibility method)
-   * PTY uses real-time streaming, so this returns a status message
-   */
-  async capturePane(sessionId) {
-    const session = this.processes.get(sessionId);
-    if (!session) {
-      return {
-        success: false,
-        error: 'Session not found',
-        output: ''
-      };
-    }
-    
-    return {
-      success: true,
-      output: '[PTY Session Active - Use real-time streaming]'
-    };
   }
   
   /**

@@ -177,9 +177,7 @@ class MessageHandler {
         this.sendResponse(ws, 'session_connect_response', {
           success: true,
           session_id: session_id,
-          session: result.session,
-          current_output: result.currentOutput,
-          terminal_size: result.terminalSize
+          session: result.session
         });
       } else {
         this.sendError(ws, result.errorCode || 'SESSION_CONNECTION_FAILED', result.error, false);
@@ -277,16 +275,6 @@ class MessageHandler {
         return this.sendError(ws, 'INPUT_REQUIRED', 'Input data is required', false);
       }
       
-      // Lazy-attach if stream isn't up yet (race: input arrived before session_connect_response)
-      const stream = this.terminalHandler.activeStreams.get(targetSession);
-      if (!stream?.isActive) {
-        const { exists } = await this.sessionManager.pty.sessionExists(targetSession);
-        if (exists) {
-          connectionState.currentSession = targetSession;
-          await this.terminalHandler.attachToSession(targetSession, ws, connectionState);
-        }
-      }
-
       await this.terminalHandler.sendInput(targetSession, input, sequence_number);
 
       // Response is handled by the terminal streaming
