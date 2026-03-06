@@ -163,10 +163,9 @@ class MessageHandler {
       if (result.success) {
         connectionState.currentSession = session_id;
 
-        // For freshly-started (idle) sessions, Claude needs time to render its
-        // conversation history into the tmux pane before getScrollback can capture it.
-        // Without this wait, getScrollback returns empty and the xterm scrollback stays
-        // empty — the user sees only the 50-row viewport with no history to scroll through.
+        // For idle sessions (no tmux), connectToSession starts Claude fresh with --resume.
+        // We wait before calling getScrollback so Claude has time to render the conversation
+        // history into the pane — otherwise the scrollback is empty and the user can't scroll.
         if (result.isNew) {
           await new Promise(resolve => setTimeout(resolve, 1500));
         }

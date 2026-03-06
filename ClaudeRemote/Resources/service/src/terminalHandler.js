@@ -10,9 +10,9 @@ class TerminalHandler {
   // that happened with the old hardcoded 80x24. Defaults match main branch's
   // generous starting size so Claude's output isn't word-wrapped too early.
   async attachToSession(sessionId, connectionId, ws, cols = 220, rows = 50) {
-    // Kill any existing PTY for this connection before spawning a new one.
-    // Without this, each navigation to the terminal screen leaks a PTY process
-    // that keeps streaming duplicate output — causing scattered/multiplied chat content.
+    // Detach any existing PTY for this connection before creating a new one.
+    // Each call to attachToSession would otherwise leak a PTY that keeps streaming
+    // to the same WebSocket, producing duplicated/interleaved output on every reconnect.
     if (this.activeSessions.get(sessionId)?.has(connectionId)) {
       this.pty.detachClient(sessionId, connectionId);
       this.activeSessions.get(sessionId).delete(connectionId);

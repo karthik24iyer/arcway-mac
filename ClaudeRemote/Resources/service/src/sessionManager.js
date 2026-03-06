@@ -87,11 +87,8 @@ class SessionManager {
       for (const projectDir of fs.readdirSync(projectsDir)) {
         const filePath = path.join(projectsDir, projectDir, `${sessionId}.jsonl`);
         if (fs.existsSync(filePath)) {
-          const firstLine = fs.readFileSync(filePath, 'utf8').split('\n')[0];
-          if (firstLine) {
-            const entry = JSON.parse(firstLine);
-            return entry.cwd || os.homedir();
-          }
+          for (const line of fs.readFileSync(filePath, 'utf8').split('\n'))
+            try { const e = JSON.parse(line); if (e.cwd) return e.cwd; } catch {}
         }
       }
     } catch {}
