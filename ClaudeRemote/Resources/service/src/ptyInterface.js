@@ -31,7 +31,10 @@ class PTYInterface {
       // This is the tmux history that never reaches the xterm widget via attach-session,
       // which only redraws the current screen. Excluding the visible pane (-E -1) means
       // no overlap with the full-screen redraw that follows.
-      return execSync(`tmux capture-pane -t ${sessionId} -p -S -2000 -E -1 -e`).toString();
+      // -J joins lines that tmux hard-wrapped at pane width (220 cols), so the xterm
+      // widget can soft-wrap them at its own width instead of double-wrapping.
+      // -J also implies -T which strips trailing spaces tmux uses to pad lines.
+      return execSync(`tmux capture-pane -t ${sessionId} -p -S -2000 -E -1 -e -J`).toString();
     } catch { return ''; }
   }
 
