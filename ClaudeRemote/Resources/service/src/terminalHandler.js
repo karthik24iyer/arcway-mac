@@ -10,10 +10,16 @@ class TerminalHandler {
   // that happened with the old hardcoded 80x24. Defaults match main branch's
   // generous starting size so Claude's output isn't word-wrapped too early.
   async attachToSession(sessionId, connectionId, ws, cols = 220, rows = 50) {
-    // tmux attach-session does its own full terminal redraw on connect.
-    // Sending a separate capture-pane scrollback blob before attaching caused
-    // doubled content: the blob + the attach redraw both paint the same screen.
-    // Solution (from main's pattern): just attach and let tmux handle the repaint.
+    // Populate xterm scrollback with tmux history ABOVE the current visible pane.
+    // tmux attach-session only redraws the current screen — it never sends past history,
+    // which is why the xterm widget's scrollback was nearly empty before this fix.
+    // We use -E -1 (stop before the visible pane) so there's zero overlap with the
+    // full-screen redraw that tmux attach-session sends immediately after.
+    const history = this.pty.getScrollback(sessionId);
+    if (history && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'terminal_output', data: { session_id: sessionId, output: history } }));
+    }
+
     this.pty.attachClient(sessionId, connectionId,
       (data) => {
         if (ws.readyState === 1) {

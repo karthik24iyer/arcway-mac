@@ -27,7 +27,11 @@ class PTYInterface {
 
   getScrollback(sessionId) {
     try {
-      return execSync(`tmux capture-pane -t ${sessionId} -p -S -1000 -e`).toString();
+      // Capture only lines ABOVE the current visible pane (-E -1).
+      // This is the tmux history that never reaches the xterm widget via attach-session,
+      // which only redraws the current screen. Excluding the visible pane (-E -1) means
+      // no overlap with the full-screen redraw that follows.
+      return execSync(`tmux capture-pane -t ${sessionId} -p -S -2000 -E -1 -e`).toString();
     } catch { return ''; }
   }
 
