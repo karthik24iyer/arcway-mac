@@ -2,9 +2,12 @@ import SwiftUI
 import ServiceManagement
 
 struct ConnectedView: View {
+    private static var caffeinateProcess: Process?
+
     let userName: String
     @State private var launchAtLogin = false
     @State private var hasFullDiskAccess: Bool = false
+    @State private var keepAwake = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -23,6 +26,21 @@ struct ConnectedView: View {
                     if #available(macOS 13.0, *) {
                         try? enabled ? SMAppService.mainApp.register()
                                      : SMAppService.mainApp.unregister()
+                    }
+                }
+
+            Toggle("Keep Mac Awake", isOn: $keepAwake)
+                .font(.subheadline)
+                .onChange(of: keepAwake) { enabled in
+                    if enabled {
+                        let p = Process()
+                        p.executableURL = URL(fileURLWithPath: "/usr/bin/caffeinate")
+                        p.arguments = ["-d", "-i", "-m", "-s"]
+                        try? p.run()
+                        ConnectedView.caffeinateProcess = p
+                    } else {
+                        ConnectedView.caffeinateProcess?.terminate()
+                        ConnectedView.caffeinateProcess = nil
                     }
                 }
 
