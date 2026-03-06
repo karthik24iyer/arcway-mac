@@ -1,5 +1,5 @@
 const pty = require('node-pty');
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 
 class PTYInterface {
   constructor(config) {
@@ -15,8 +15,10 @@ class PTYInterface {
   }
 
   startSession(sessionId, cwd, claudeArgs) {
-    const args = claudeArgs.length ? ` ${claudeArgs.join(' ')}` : '';
-    execSync(`tmux new-session -d -s ${sessionId} -c '${cwd}' "claude${args}"`);
+    // Use array-form to avoid shell injection on cwd
+    const claudeCmd = claudeArgs.length ? `claude ${claudeArgs.join(' ')}` : 'claude';
+    const result = spawnSync('tmux', ['new-session', '-d', '-s', sessionId, '-c', cwd, claudeCmd]);
+    if (result.error) throw result.error;
   }
 
   sessionExists(sessionId) {
@@ -24,18 +26,24 @@ class PTYInterface {
   }
 
   getScrollback(sessionId) {
-    return execSync(`tmux capture-pane -t ${sessionId} -p -S -50000 -e`).toString();
+    try {
+      return execSync(`tmux capture-pane -t ${sessionId} -p -S -1000 -e`).toString();
+    } catch { return ''; }
   }
 
-  attachClient(sessionId, clientId, onData, onExit) {
+  // cols/rows borrowed from main's PTY pattern — pass actual client dimensions
+  // rather than hardcoding 80x24, which forces tmux aggressive-resize to squish content
+  attachClient(sessionId, clientId, onData, onExit, cols = 220, rows = 50) {
     const clientPty = pty.spawn('tmux', ['attach-session', '-t', sessionId], {
       name: 'xterm-256color',
-      cols: 80,
-      rows: 24,
+      cols,
+      rows,
       env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' }
     });
 
     clientPty.on('data', onData);
+    // Only fire onExit when tmux session itself dies, not when we detach the client.
+    // detachClient removes this listener before kill() so it won't misfire.
     clientPty.on('exit', onExit);
 
     if (!this.sessions.has(sessionId)) this.sessions.set(sessionId, new Map());
@@ -58,6 +66,9 @@ class PTYInterface {
   detachClient(sessionId, clientId) {
     const client = this.sessions.get(sessionId)?.get(clientId);
     if (client) {
+      // Remove exit listener first so kill() doesn't fire the onExit callback
+      // and incorrectly mark the tmux session as dead (borrowed from main's pattern)
+      client.ptyProcess.removeAllListeners('exit');
       client.ptyProcess.kill();
       this.sessions.get(sessionId).delete(clientId);
     }

@@ -163,7 +163,11 @@ class MessageHandler {
       if (result.success) {
         connectionState.currentSession = session_id;
 
-        await this.terminalHandler.attachToSession(session_id, connectionState.id, ws);
+        // Pass the client's last known terminal dimensions so attachToSession spawns
+        // tmux attach-session at the right size, preventing an aggressive-resize reflow
+        const cols = connectionState.terminalCols || 220;
+        const rows = connectionState.terminalRows || 50;
+        await this.terminalHandler.attachToSession(session_id, connectionState.id, ws, cols, rows);
 
         this.sendResponse(ws, 'session_connect_response', {
           success: true,
@@ -279,8 +283,12 @@ class MessageHandler {
         return this.sendError(ws, 'DIMENSIONS_REQUIRED', 'Rows and cols are required', false);
       }
       
+      // Store dimensions so reconnects use the actual client screen size
+      connectionState.terminalCols = cols;
+      connectionState.terminalRows = rows;
+
       const result = await this.terminalHandler.resizeTerminal(targetSession, connectionState.id, rows, cols);
-      
+
       this.sendResponse(ws, 'terminal_resize_response', {
         success: true,
         session_id: targetSession,

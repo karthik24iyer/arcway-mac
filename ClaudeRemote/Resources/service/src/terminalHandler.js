@@ -5,14 +5,15 @@ class TerminalHandler {
     this.activeSessions = new Map();
   }
 
-  async attachToSession(sessionId, connectionId, ws) {
-    // 1. Dump scrollback first
-    const scrollback = this.pty.getScrollback(sessionId);
-    if (scrollback && ws.readyState === 1) {
-      ws.send(JSON.stringify({ type: 'terminal_output', data: { session_id: sessionId, output: scrollback } }));
-    }
-
-    // 2. Attach client PTY — live stream from here
+  // cols/rows passed through from connectionState so the initial tmux attach
+  // uses the client's actual screen size — avoids the aggressive-resize reflow
+  // that happened with the old hardcoded 80x24. Defaults match main branch's
+  // generous starting size so Claude's output isn't word-wrapped too early.
+  async attachToSession(sessionId, connectionId, ws, cols = 220, rows = 50) {
+    // tmux attach-session does its own full terminal redraw on connect.
+    // Sending a separate capture-pane scrollback blob before attaching caused
+    // doubled content: the blob + the attach redraw both paint the same screen.
+    // Solution (from main's pattern): just attach and let tmux handle the repaint.
     this.pty.attachClient(sessionId, connectionId,
       (data) => {
         if (ws.readyState === 1)
@@ -22,7 +23,9 @@ class TerminalHandler {
         // tmux session died — notify client
         if (ws.readyState === 1)
           ws.send(JSON.stringify({ type: 'status_update', data: { session_id: sessionId, status: 'idle' } }));
-      }
+      },
+      cols,
+      rows
     );
 
     if (!this.activeSessions.has(sessionId)) this.activeSessions.set(sessionId, new Set());
@@ -45,6 +48,13 @@ class TerminalHandler {
   }
 
   async resizeTerminal(sessionId, connectionId, rows, cols) {
+    if (rows < 1 || rows > 200 || cols < 1 || cols > 500) {
+      return { success: true, terminalSize: { rows, cols } }; // ignore bogus dimensions
+    }
+    // Guard: resize may race ahead of connect (borrowed from main) — silently ignore
+    if (!this.activeSessions.get(sessionId)?.has(connectionId)) {
+      return { success: true, terminalSize: { rows, cols } };
+    }
     this.pty.resizeClient(sessionId, connectionId, cols, rows);
     return { success: true, terminalSize: { rows, cols } };
   }
