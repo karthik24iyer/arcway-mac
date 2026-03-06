@@ -665,7 +665,10 @@ class ClaudeRemoteServer {
       const RelayClient = require('./relayClient');
       this.relayClient = new RelayClient(
         process.env.RELAY_URL,
-        (ws, relayUser) => this.handleNewConnection(ws, { socket: { remoteAddress: 'relay' } }, relayUser)
+        async (ws, relayUser) => {
+          await this.sessionManager.killAllActiveSessions();
+          this.handleNewConnection(ws, { socket: { remoteAddress: 'relay' } }, relayUser);
+        }
       );
       this.relayClient.start();
       console.log('\n🎉 Claude Remote Service Started Successfully!');

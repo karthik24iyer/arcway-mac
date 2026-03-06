@@ -493,6 +493,20 @@ class SessionManager {
   }
   
   /**
+   * Kill all active PTY sessions (called on fresh client connect)
+   */
+  async killAllActiveSessions() {
+    const runningSessions = await this.pty.listSessions();
+    for (const { name: sessionId } of runningSessions) {
+      await this.pty.killSession(sessionId);
+      await this.state.deleteSession(sessionId);
+    }
+    if (runningSessions.length > 0) {
+      console.log(`🧹 Killed ${runningSessions.length} active PTY session(s) on client reconnect`);
+    }
+  }
+
+  /**
    * Restart Claude Code in session (error recovery)
    */
   async restartClaude(sessionId) {
