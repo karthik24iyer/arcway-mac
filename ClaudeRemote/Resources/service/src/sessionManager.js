@@ -100,11 +100,11 @@ class SessionManager {
   }
 
   async connectToSession(sessionId, skipPermissions) {
-    if (this.pty.sessionExists(sessionId)) return { success: true };
+    if (this.pty.sessionExists(sessionId)) return { success: true, isNew: false };
     const cwd = await this._getCwdForHistorySession(sessionId);
     const args = ['--resume', sessionId, ...(skipPermissions ? ['--dangerously-skip-permissions'] : [])];
     this.pty.startSession(sessionId, cwd, args);
-    return { success: true };
+    return { success: true, isNew: true };
   }
 
   async createClaudeSession(directory, skipPermissions) {

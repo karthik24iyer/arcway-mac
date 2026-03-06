@@ -163,6 +163,14 @@ class MessageHandler {
       if (result.success) {
         connectionState.currentSession = session_id;
 
+        // For freshly-started (idle) sessions, Claude needs time to render its
+        // conversation history into the tmux pane before getScrollback can capture it.
+        // Without this wait, getScrollback returns empty and the xterm scrollback stays
+        // empty — the user sees only the 50-row viewport with no history to scroll through.
+        if (result.isNew) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
         // Pass the client's last known terminal dimensions so attachToSession spawns
         // tmux attach-session at the right size, preventing an aggressive-resize reflow
         const cols = connectionState.terminalCols || 220;
