@@ -16,8 +16,16 @@ class TerminalHandler {
     // Solution (from main's pattern): just attach and let tmux handle the repaint.
     this.pty.attachClient(sessionId, connectionId,
       (data) => {
-        if (ws.readyState === 1)
-          ws.send(JSON.stringify({ type: 'terminal_output', data: { session_id: sessionId, output: data } }));
+        if (ws.readyState === 1) {
+          // Strip alternate-screen enter/exit sequences so Claude's conversation
+          // stays on the main screen buffer and is scrollable in the terminal widget.
+          // Claude uses \x1b[?1049h to enter alternate screen — without this strip,
+          // scrolling up shows old shell history instead of the chat.
+          // The clear+reposition sequences (\x1b[2J\x1b[H) that follow still run,
+          // giving Claude a clean canvas on the main screen.
+          const out = data.replace(/\x1b\[\?1049[hl]/g, '');
+          ws.send(JSON.stringify({ type: 'terminal_output', data: { session_id: sessionId, output: out } }));
+        }
       },
       () => {
         // tmux session died — notify client
