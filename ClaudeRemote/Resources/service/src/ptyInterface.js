@@ -1,5 +1,6 @@
 const pty = require('node-pty');
 const { execSync, spawnSync } = require('child_process');
+const { normalizeTmuxSGR } = require('./sgrNormalizer');
 
 class PTYInterface {
   constructor(config) {
@@ -28,9 +29,11 @@ class PTYInterface {
 
   getScrollback(sessionId) {
     try {
-      // Capture scrollback above visible pane; convert bare \n to \r\n to match live PTY stream
-      const result = spawnSync('tmux', ['capture-pane', '-t', sessionId, '-p', '-S', '-2000', '-E', '-1', '-J']);
-      return result.stdout.toString().replace(/\r?\n/g, '\r\n');
+      // -e includes SGR color codes; normalizeTmuxSGR collapses tmux's per-cell SGR
+      // into combined sequences that xterm.dart renders correctly.
+      const result = spawnSync('tmux', ['capture-pane', '-t', sessionId, '-p', '-e', '-S', '-2000', '-E', '-1', '-J']);
+      const raw = (result.stdout || Buffer.alloc(0)).toString('latin1');
+      return normalizeTmuxSGR(raw).replace(/\r?\n/g, '\r\n');
     } catch { return ''; }
   }
 
