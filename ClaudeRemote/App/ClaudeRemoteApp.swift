@@ -33,6 +33,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &cancellables)
 
         AgentService.shared.startIfCredentialed()
+
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            AgentService.shared.stop()
+            AgentService.shared.startIfCredentialed()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

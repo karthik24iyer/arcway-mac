@@ -40,6 +40,12 @@ struct ConnectedView: View {
 
             Divider()
 
+            Button("Reconnect") {
+                AgentService.shared.stop()
+                AgentService.shared.startIfCredentialed()
+            }
+            .buttonStyle(.plain)
+
             Button("Logout", role: .destructive) {
                 AgentService.shared.stop()
                 AuthService.shared.logout()

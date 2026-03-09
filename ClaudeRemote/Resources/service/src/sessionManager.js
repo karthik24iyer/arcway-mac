@@ -78,9 +78,18 @@ class SessionManager {
   }
 
   async _getCwdForHistorySession(sessionId) {
-    const sessions = await this.listClaudeHistorySessions();
-    const match = sessions.find(s => s.sessionId === sessionId);
-    return (match && match.directory) || os.homedir();
+    const projectsDir = path.join(os.homedir(), '.claude', 'projects');
+    try {
+      for (const projectDir of await fs.promises.readdir(projectsDir)) {
+        const filePath = path.join(projectsDir, projectDir, `${sessionId}.jsonl`);
+        try {
+          const content = await fs.promises.readFile(filePath, 'utf8');
+          for (const line of content.split('\n'))
+            try { const e = JSON.parse(line); if (e.cwd) return e.cwd; } catch {}
+        } catch {}
+      }
+    } catch {}
+    return os.homedir();
   }
 
   async connectToSession(sessionId, skipPermissions) {
