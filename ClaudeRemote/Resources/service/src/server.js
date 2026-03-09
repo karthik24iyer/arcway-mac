@@ -22,10 +22,8 @@ const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 class ClaudeRemoteServer {
   constructor() {
     this.config = config;
-    this.startTime = Date.now();
     this.connections = new Map(); // connectionId -> connection state
-    this.connectionCount = 0;
-    
+
     // Connection limits (missing in original)
     this.maxConnections = config.server?.maxConnections || 100;
     this.maxMessageSize = config.server?.maxMessageSize || 1024 * 1024; // 1MB
@@ -45,9 +43,6 @@ class ClaudeRemoteServer {
     console.log('🚀 Claude Remote Service initialized');
   }
 
-  /**
-   * Initialize all service components
-   */
   initializeComponents() {
     try {
       // Initialize core managers
@@ -63,16 +58,12 @@ class ClaudeRemoteServer {
         this.config
       );
       
-      console.log('✅ All service components initialized successfully');
     } catch (error) {
       console.error('❌ Failed to initialize service components:', error);
       process.exit(1);
     }
   }
 
-  /**
-   * Setup Express application with simplified endpoints
-   */
   setupExpressApp() {
     this.app = express();
     this.app.use(express.json({ limit: '1mb' })); // Limit request size
@@ -112,20 +103,12 @@ class ClaudeRemoteServer {
       }
     });
 
-    console.log('🌐 Express app configured');
   }
 
-  /**
-   * Setup HTTP server
-   */
   setupHttpServer() {
     this.server = http.createServer(this.app);
-    console.log('📡 HTTP server created');
   }
 
-  /**
-   * Setup WebSocket server with connection limits and validation
-   */
   setupWebSocketServer() {
     this.wss = new WebSocket.Server({ 
       server: this.server,
@@ -135,7 +118,7 @@ class ClaudeRemoteServer {
 
     this.wss.on('connection', (ws, req) => {
       // Check connection limit
-      if (this.connectionCount >= this.maxConnections) {
+      if (this.connections.size >= this.maxConnections) {
         console.warn(`⚠️  Connection rejected: limit reached (${this.maxConnections})`);
         ws.close(1008, 'Connection limit reached');
         return;
@@ -150,12 +133,8 @@ class ClaudeRemoteServer {
       console.error('❌ WebSocket server error:', error);
     });
 
-    console.log('🔌 WebSocket server configured with limits and error handling');
   }
 
-  /**
-   * Handle new WebSocket connection with basic tracking
-   */
   handleNewConnection(ws, req, relayUser = null) {
     const connectionId = uuidv4();
     const clientIP = req.socket.remoteAddress;
@@ -178,7 +157,6 @@ class ClaudeRemoteServer {
     };
     
     this.connections.set(connectionId, connectionState);
-    this.connectionCount++;
 
     // Send welcome message
     this.sendWelcomeMessage(ws, connectionId);
@@ -219,9 +197,6 @@ class ClaudeRemoteServer {
     this.setupBasicHeartbeat(ws, connectionId);
   }
 
-  /**
-   * Check rate limiting for connection
-   */
   checkRateLimit(connectionState) {
     const now = Date.now();
     const oneMinuteAgo = now - 60000;
@@ -246,9 +221,6 @@ class ClaudeRemoteServer {
     return true;
   }
 
-  /**
-   * Send welcome message to new connections
-   */
   sendWelcomeMessage(ws, connectionId) {
     const welcomeMessage = {
       type: 'welcome',
@@ -269,9 +241,6 @@ class ClaudeRemoteServer {
     ws.send(JSON.stringify(welcomeMessage));
   }
 
-  /**
-   * Handle incoming WebSocket messages with validation
-   */
   async handleMessage(ws, message, connectionState) {
     try {
       // Update activity timestamp
@@ -303,26 +272,18 @@ class ClaudeRemoteServer {
     }
   }
 
-  /**
-   * Handle connection close
-   */
   handleConnectionClose(connectionId, connectionState) {
     console.log(`🔌 Connection closed: ${connectionId}`);
 
     if (connectionState.currentSession) {
-      Promise.resolve()
-        .then(() => this.terminalHandler.detachFromSession(connectionState.currentSession, connectionId))
+      this.terminalHandler.detachFromSession(connectionState.currentSession, connectionId)
         .catch(error => console.error('Error detaching from session:', error));
     }
 
     // Remove connection
     this.connections.delete(connectionId);
-    this.connectionCount--;
   }
 
-  /**
-   * Handle connection errors
-   */
   handleConnectionError(connectionId, error) {
     console.error(`❌ WebSocket error for ${connectionId}:`, error);
     
@@ -332,9 +293,6 @@ class ClaudeRemoteServer {
     }
   }
 
-  /**
-   * Setup basic heartbeat (simplified from complex monitoring)
-   */
   setupBasicHeartbeat(ws, connectionId) {
     const heartbeatInterval = setInterval(() => {
       const connection = this.connections.get(connectionId);
@@ -359,9 +317,6 @@ class ClaudeRemoteServer {
     }, 30000); // Every 30 seconds
   }
 
-  /**
-   * Send error message to WebSocket
-   */
   sendError(ws, errorCode, message, retryable) {
     if (ws.readyState === WebSocket.OPEN) {
       const errorMessage = {
@@ -379,26 +334,6 @@ class ClaudeRemoteServer {
     }
   }
 
-  /**
-   * Get basic connection statistics (simplified)
-   */
-  getBasicConnectionStats() {
-    const connections = Array.from(this.connections.values());
-    const authenticatedConnections = connections.filter(c => c.authenticatedUser).length;
-    const activeStreams = this.terminalHandler.getActiveStreams().length;
-    
-    return {
-      total_connections: this.connectionCount,
-      active_connections: connections.length,
-      authenticated_connections: authenticatedConnections,
-      active_terminal_streams: activeStreams,
-      max_connections: this.maxConnections
-    };
-  }
-
-  /**
-   * Setup cleanup handlers for graceful shutdown
-   */
   setupCleanupHandlers() {
     const gracefulShutdown = async (signal) => {
       console.log(`\n🛑 Received ${signal}, initiating graceful shutdown...`);
@@ -456,12 +391,8 @@ class ClaudeRemoteServer {
       gracefulShutdown('UNHANDLED_REJECTION');
     });
 
-    console.log('🛡️  Graceful shutdown handlers configured');
   }
 
-  /**
-   * Start the server
-   */
   start(callback) {
     const PORT = process.env.PORT || this.config.server.port || 8080;
     const HOST = process.env.HOST || this.config.server.host || 'localhost';
@@ -505,16 +436,12 @@ class ClaudeRemoteServer {
     this.setupMaintenanceTasks();
   }
 
-  /**
-   * Setup maintenance tasks
-   */
   setupMaintenanceTasks() {
     // Clean up expired auth sessions every minute
     setInterval(() => {
       this.authManager.cleanupExpiredSessions();
     }, 60000);
 
-    console.log('🔄 Maintenance tasks scheduled');
   }
 }
 

@@ -1,9 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
 
-/**
- * MessageHandler - Routes and processes WebSocket messages
- * Handles message validation, routing, and response formatting
- */
 class MessageHandler {
   constructor(authManager, sessionManager, terminalHandler, config) {
     this.authManager = authManager;
@@ -27,13 +23,6 @@ class MessageHandler {
     console.log('MessageHandler initialized with', Object.keys(this.messageRoutes).length, 'routes');
   }
 
-  /**
-   * Route incoming WebSocket message to appropriate handler
-   * @param {WebSocket} ws - WebSocket connection
-   * @param {Object} message - Parsed message object
-   * @param {Object} connectionState - Connection state object
-   * @returns {Promise<void>}
-   */
   async routeMessage(ws, message, connectionState) {
     try {
       // Validate message structure
@@ -57,9 +46,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle authentication requests
-   */
   async handleAuthRequest(ws, message, connectionState) {
     try {
       const { username, password, client_info } = message.data;
@@ -97,9 +83,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle session list requests
-   */
   async handleSessionListRequest(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
@@ -116,14 +99,11 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle session creation requests
-   */
   async handleSessionCreateRequest(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
       
-      const { directory: rawDir, session_name, skip_permissions } = message.data;
+      const { directory: rawDir, skip_permissions } = message.data;
       const directory = (rawDir && rawDir.trim()) || '~';
 
       const result = await this.sessionManager.createClaudeSession(
@@ -145,9 +125,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle session connection requests
-   */
   async handleSessionConnectRequest(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
@@ -189,9 +166,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle session status requests
-   */
   async handleSessionStatusRequest(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
@@ -218,14 +192,11 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle terminal input
-   */
   async handleTerminalInput(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
       
-      const { session_id, input, sequence_number } = message.data;
+      const { session_id, input } = message.data;
       const targetSession = session_id || connectionState.currentSession;
       
       if (!targetSession) {
@@ -245,14 +216,11 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle special key input
-   */
   async handleSpecialKeyInput(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
       
-      const { session_id, key, modifiers } = message.data;
+      const { session_id, key } = message.data;
       const targetSession = session_id || connectionState.currentSession;
       
       if (!targetSession) {
@@ -272,9 +240,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle terminal resize
-   */
   async handleTerminalResize(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
@@ -307,9 +272,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle ping requests
-   */
   handlePing(ws, message, connectionState) {
     this.sendResponse(ws, 'pong', {
       ping_id: message.id,
@@ -317,9 +279,6 @@ class MessageHandler {
     });
   }
 
-  /**
-   * Handle session termination requests
-   */
   async handleSessionTerminateRequest(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
@@ -353,11 +312,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Validate message structure
-   * @param {Object} message - Message to validate
-   * @returns {Object} Validation result
-   */
   validateMessage(message) {
     if (!message || typeof message !== 'object') {
       return {
@@ -383,13 +337,6 @@ class MessageHandler {
     return { isValid: true };
   }
 
-  /**
-   * Validate authentication for protected endpoints
-   * @param {WebSocket} ws - WebSocket connection
-   * @param {Object} message - Message object
-   * @param {Object} connectionState - Connection state
-   * @returns {Promise<boolean>} Whether authentication is valid
-   */
   async validateAuth(ws, message, connectionState) {
     if (!connectionState.authenticatedUser) {
       this.sendError(ws, 'UNAUTHORIZED', 'Authentication required', false);
@@ -409,12 +356,6 @@ class MessageHandler {
     return true;
   }
 
-  /**
-   * Send a formatted response message
-   * @param {WebSocket} ws - WebSocket connection
-   * @param {string} type - Response type
-   * @param {Object} data - Response data
-   */
   sendResponse(ws, type, data) {
     try {
       if (ws.readyState !== ws.OPEN) {
@@ -435,13 +376,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Send an error message
-   * @param {WebSocket} ws - WebSocket connection
-   * @param {string} errorCode - Error code
-   * @param {string} message - Error message
-   * @param {boolean} retryable - Whether the error is retryable
-   */
   sendError(ws, errorCode, message, retryable) {
     this.sendResponse(ws, 'error', {
       error_code: errorCode,
@@ -450,35 +384,10 @@ class MessageHandler {
     });
   }
 
-  /**
-   * Get supported message types
-   * @returns {Array} List of supported message types
-   */
   getSupportedMessageTypes() {
     return Object.keys(this.messageRoutes);
   }
 
-  /**
-   * Get message routing statistics
-   * @returns {Object} Routing statistics
-   */
-  getRoutingStats() {
-    return {
-      supported_message_types: this.getSupportedMessageTypes(),
-      total_routes: Object.keys(this.messageRoutes).length,
-      authentication_required: [
-        'session_list_request',
-        'session_create_request',
-        'session_connect_request',
-        'session_status_request',
-        'session_terminate_request',
-        'terminal_input',
-        'special_key_input',
-        'terminal_resize'
-      ],
-      public_endpoints: ['auth_request', 'ping']
-    };
-  }
 }
 
 module.exports = MessageHandler;

@@ -22,20 +22,15 @@ class PTYInterface {
   }
 
   sessionExists(sessionId) {
-    try { execSync(`tmux has-session -t ${sessionId}`); return true; } catch { return false; }
+    const result = spawnSync('tmux', ['has-session', '-t', sessionId]);
+    return result.status === 0;
   }
 
   getScrollback(sessionId) {
     try {
-      // Capture only lines ABOVE the current visible pane (-E -1) so there's no overlap
-      // with the full-screen redraw that tmux attach-session sends right after.
-      // -J joins lines tmux hard-wrapped at pane width so xterm can soft-wrap at its own width.
-      // No -e: plain text avoids per-cell SGR sequences that xterm.dart renders incorrectly.
-      // \r\n conversion: capture-pane outputs bare \n (pipe, no PTY onlcr translation).
-      // xterm.dart follows VT100 where \n = cursor-down only (no CR), causing a staircase
-      // effect. The live PTY stream already has \r\n via node-pty's onlcr. We match that here.
-      const raw = execSync(`tmux capture-pane -t ${sessionId} -p -S -2000 -E -1 -J`).toString();
-      return raw.replace(/\r?\n/g, '\r\n');
+      // Capture scrollback above visible pane; convert bare \n to \r\n to match live PTY stream
+      const result = spawnSync('tmux', ['capture-pane', '-t', sessionId, '-p', '-S', '-2000', '-E', '-1', '-J']);
+      return result.stdout.toString().replace(/\r?\n/g, '\r\n');
     } catch { return ''; }
   }
 
@@ -67,7 +62,7 @@ class PTYInterface {
   }
 
   killSession(sessionId) {
-    try { execSync(`tmux kill-session -t ${sessionId}`); } catch {}
+    try { spawnSync('tmux', ['kill-session', '-t', sessionId]); } catch {}
     this.sessions.delete(sessionId);
   }
 
@@ -82,13 +77,6 @@ class PTYInterface {
     }
   }
 
-  listRunningSessions() {
-    try {
-      return execSync('tmux list-sessions').toString().trim().split('\n')
-        .filter(l => l)
-        .map(l => l.split(':')[0]);
-    } catch { return []; }
-  }
 }
 
 module.exports = PTYInterface;

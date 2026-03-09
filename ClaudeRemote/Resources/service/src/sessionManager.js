@@ -1,3 +1,6 @@
+const os = require('os');
+const path = require('path');
+const fs = require('fs');
 const PTYInterface = require('./ptyInterface');
 const { v4: uuidv4 } = require('uuid');
 
@@ -11,9 +14,6 @@ class SessionManager {
   }
 
   async listClaudeHistorySessions() {
-    const os = require('os');
-    const path = require('path');
-    const fs = require('fs');
     const projectsDir = path.join(os.homedir(), '.claude', 'projects');
     const sessions = [];
 
@@ -78,22 +78,9 @@ class SessionManager {
   }
 
   async _getCwdForHistorySession(sessionId) {
-    const os = require('os');
-    const path = require('path');
-    const fs = require('fs');
-    const projectsDir = path.join(os.homedir(), '.claude', 'projects');
-
-    try {
-      for (const projectDir of fs.readdirSync(projectsDir)) {
-        const filePath = path.join(projectsDir, projectDir, `${sessionId}.jsonl`);
-        if (fs.existsSync(filePath)) {
-          for (const line of fs.readFileSync(filePath, 'utf8').split('\n'))
-            try { const e = JSON.parse(line); if (e.cwd) return e.cwd; } catch {}
-        }
-      }
-    } catch {}
-
-    return require('os').homedir();
+    const sessions = await this.listClaudeHistorySessions();
+    const match = sessions.find(s => s.sessionId === sessionId);
+    return (match && match.directory) || os.homedir();
   }
 
   async connectToSession(sessionId, skipPermissions) {
