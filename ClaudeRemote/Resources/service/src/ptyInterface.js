@@ -32,7 +32,7 @@ class PTYInterface {
       // -e includes SGR color codes; normalizeTmuxSGR collapses tmux's per-cell SGR
       // into combined sequences that xterm.dart renders correctly.
       const result = spawnSync('tmux', ['capture-pane', '-t', sessionId, '-p', '-e', '-S', '-2000', '-E', '-1', '-J']);
-      const raw = (result.stdout || Buffer.alloc(0)).toString('latin1');
+      const raw = (result.stdout || Buffer.alloc(0)).toString('utf8');
       return normalizeTmuxSGR(raw).replace(/\r?\n/g, '\r\n');
     } catch { return ''; }
   }
