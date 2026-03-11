@@ -32,6 +32,8 @@ class RelayClient {
     this.reconnectDelay = 5000;
     this.stopping = false;
     this._currentSession = null;
+    this._pingIntervalId = null;
+    this._pongReceived = true;
   }
 
   start() {
@@ -60,6 +62,7 @@ class RelayClient {
 
     this.ws.on('open', () => {
       console.log('RelayClient: connected to relay');
+      this._startPingInterval();
       if (credential) {
         this.ws.send(JSON.stringify({ type: 'auth', device_credential: credential }));
       } else {
@@ -88,7 +91,10 @@ class RelayClient {
       }
     });
 
+    this.ws.on('pong', () => { this._pongReceived = true; });
+
     this.ws.on('close', () => {
+      this._stopPingInterval();
       console.log('STATUS:disconnected');
       console.log(`RelayClient: disconnected. Reconnecting in ${this.reconnectDelay / 1000}s...`);
       this._currentSession?.destroy();
@@ -101,6 +107,27 @@ class RelayClient {
     this.ws.on('error', (err) => {
       console.error('RelayClient: ws error:', err.message);
     });
+  }
+
+  _startPingInterval() {
+    this._stopPingInterval();
+    this._pongReceived = true;
+    this._pingIntervalId = setInterval(() => {
+      if (!this._pongReceived) {
+        console.log('RelayClient: ping timeout, terminating stale connection');
+        this.ws.terminate();
+        return;
+      }
+      this._pongReceived = false;
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.ping();
+    }, 6000);
+  }
+
+  _stopPingInterval() {
+    if (this._pingIntervalId) {
+      clearInterval(this._pingIntervalId);
+      this._pingIntervalId = null;
+    }
   }
 
   _loadCredential() {

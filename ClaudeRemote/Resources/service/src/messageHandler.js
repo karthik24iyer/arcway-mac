@@ -1,9 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
 
-/**
- * MessageHandler - Routes and processes WebSocket messages
- * Handles message validation, routing, and response formatting
- */
 class MessageHandler {
   constructor(authManager, sessionManager, terminalHandler, config) {
     this.authManager = authManager;
@@ -11,13 +7,11 @@ class MessageHandler {
     this.terminalHandler = terminalHandler;
     this.config = config;
     
-    // Message routing map (9 routes for MVP)
     this.messageRoutes = {
       'auth_request': this.handleAuthRequest.bind(this),
       'session_list_request': this.handleSessionListRequest.bind(this),
       'session_create_request': this.handleSessionCreateRequest.bind(this),
       'session_connect_request': this.handleSessionConnectRequest.bind(this),
-      'session_disconnect_request': this.handleSessionDisconnectRequest.bind(this),
       'session_status_request': this.handleSessionStatusRequest.bind(this),
       'session_terminate_request': this.handleSessionTerminateRequest.bind(this),
       'terminal_input': this.handleTerminalInput.bind(this),
@@ -29,13 +23,6 @@ class MessageHandler {
     console.log('MessageHandler initialized with', Object.keys(this.messageRoutes).length, 'routes');
   }
 
-  /**
-   * Route incoming WebSocket message to appropriate handler
-   * @param {WebSocket} ws - WebSocket connection
-   * @param {Object} message - Parsed message object
-   * @param {Object} connectionState - Connection state object
-   * @returns {Promise<void>}
-   */
   async routeMessage(ws, message, connectionState) {
     try {
       // Validate message structure
@@ -59,9 +46,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle authentication requests
-   */
   async handleAuthRequest(ws, message, connectionState) {
     try {
       const { username, password, client_info } = message.data;
@@ -99,9 +83,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle session list requests
-   */
   async handleSessionListRequest(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
@@ -118,27 +99,22 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle session creation requests
-   */
   async handleSessionCreateRequest(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
       
-      const { directory: rawDir, session_name, skip_permissions } = message.data;
+      const { directory: rawDir, skip_permissions } = message.data;
       const directory = (rawDir && rawDir.trim()) || '~';
 
       const result = await this.sessionManager.createClaudeSession(
         directory,
-        session_name,
-        connectionState.authenticatedUser.username,
         !!skip_permissions
       );
-      
+
       if (result.success) {
         this.sendResponse(ws, 'session_create_response', {
           success: true,
-          session: result.session
+          session_id: result.sessionId
         });
       } else {
         this.sendError(ws, result.errorCode || 'SESSION_CREATE_FAILED', result.error, true);
@@ -149,9 +125,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle session connection requests
-   */
   async handleSessionConnectRequest(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
@@ -162,22 +135,27 @@ class MessageHandler {
         return this.sendError(ws, 'SESSION_ID_REQUIRED', 'Session ID is required', false);
       }
 
-      const result = await this.sessionManager.connectToSession(
-        session_id,
-        connectionState.authenticatedUser.username,
-        !!skip_permissions
-      );
-      
+      const result = await this.sessionManager.connectToSession(session_id, !!skip_permissions);
+
       if (result.success) {
         connectionState.currentSession = session_id;
-        
-        // Start terminal streaming
-        await this.terminalHandler.attachToSession(session_id, ws, connectionState);
-        
+
+        // For idle sessions (no tmux), connectToSession starts Claude fresh with --resume.
+        // We wait before calling getScrollback so Claude has time to render the conversation
+        // history into the pane — otherwise the scrollback is empty and the user can't scroll.
+        if (result.isNew) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
+        // Pass the client's last known terminal dimensions so attachToSession spawns
+        // tmux attach-session at the right size, preventing an aggressive-resize reflow
+        const cols = connectionState.terminalCols || 220;
+        const rows = connectionState.terminalRows || 50;
+        await this.terminalHandler.attachToSession(session_id, connectionState.id, ws, cols, rows);
+
         this.sendResponse(ws, 'session_connect_response', {
           success: true,
-          session_id: session_id,
-          session: result.session
+          session_id: session_id
         });
       } else {
         this.sendError(ws, result.errorCode || 'SESSION_CONNECTION_FAILED', result.error, false);
@@ -188,49 +166,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle session disconnection requests
-   */
-  async handleSessionDisconnectRequest(ws, message, connectionState) {
-    try {
-      if (!await this.validateAuth(ws, message, connectionState)) return;
-      
-      const { session_id } = message.data;
-      const sessionToDisconnect = session_id || connectionState.currentSession;
-      
-      if (!sessionToDisconnect) {
-        return this.sendError(ws, 'NO_ACTIVE_SESSION', 'No session to disconnect from', false);
-      }
-      
-      // Stop terminal streaming
-      await this.terminalHandler.detachFromSession(sessionToDisconnect);
-      
-      // Disconnect from session
-      const result = await this.sessionManager.disconnectFromSession(
-        sessionToDisconnect,
-        connectionState.authenticatedUser.username
-      );
-      
-      if (result.success) {
-        connectionState.currentSession = null;
-        
-        this.sendResponse(ws, 'session_disconnect_response', {
-          success: true,
-          session_id: sessionToDisconnect,
-          message: 'Disconnected successfully'
-        });
-      } else {
-        this.sendError(ws, result.errorCode || 'DISCONNECT_FAILED', result.error, true);
-      }
-    } catch (error) {
-      console.error('Session disconnection error:', error);
-      this.sendError(ws, 'DISCONNECT_FAILED', error.message, true);
-    }
-  }
-
-  /**
-   * Handle session status requests
-   */
   async handleSessionStatusRequest(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
@@ -257,14 +192,11 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle terminal input
-   */
   async handleTerminalInput(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
       
-      const { session_id, input, sequence_number } = message.data;
+      const { session_id, input } = message.data;
       const targetSession = session_id || connectionState.currentSession;
       
       if (!targetSession) {
@@ -275,7 +207,7 @@ class MessageHandler {
         return this.sendError(ws, 'INPUT_REQUIRED', 'Input data is required', false);
       }
       
-      await this.terminalHandler.sendInput(targetSession, input, sequence_number);
+      await this.terminalHandler.sendInput(targetSession, connectionState.id, input);
 
       // Response is handled by the terminal streaming
     } catch (error) {
@@ -284,14 +216,11 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle special key input
-   */
   async handleSpecialKeyInput(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
       
-      const { session_id, key, modifiers } = message.data;
+      const { session_id, key } = message.data;
       const targetSession = session_id || connectionState.currentSession;
       
       if (!targetSession) {
@@ -302,7 +231,7 @@ class MessageHandler {
         return this.sendError(ws, 'KEY_REQUIRED', 'Key code is required', false);
       }
       
-      await this.terminalHandler.handleSpecialKeys(targetSession, key, modifiers);
+      await this.terminalHandler.handleSpecialKeys(targetSession, connectionState.id, key);
       
       // Response is handled by the terminal streaming
     } catch (error) {
@@ -311,9 +240,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle terminal resize
-   */
   async handleTerminalResize(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
@@ -329,8 +255,12 @@ class MessageHandler {
         return this.sendError(ws, 'DIMENSIONS_REQUIRED', 'Rows and cols are required', false);
       }
       
-      const result = await this.terminalHandler.resizeTerminal(targetSession, rows, cols);
-      
+      // Store dimensions so reconnects use the actual client screen size
+      connectionState.terminalCols = cols;
+      connectionState.terminalRows = rows;
+
+      const result = await this.terminalHandler.resizeTerminal(targetSession, connectionState.id, rows, cols);
+
       this.sendResponse(ws, 'terminal_resize_response', {
         success: true,
         session_id: targetSession,
@@ -342,9 +272,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Handle ping requests
-   */
   handlePing(ws, message, connectionState) {
     this.sendResponse(ws, 'pong', {
       ping_id: message.id,
@@ -352,9 +279,6 @@ class MessageHandler {
     });
   }
 
-  /**
-   * Handle session termination requests
-   */
   async handleSessionTerminateRequest(ws, message, connectionState) {
     try {
       if (!await this.validateAuth(ws, message, connectionState)) return;
@@ -365,14 +289,9 @@ class MessageHandler {
         return this.sendError(ws, 'SESSION_ID_REQUIRED', 'Session ID is required', false);
       }
 
-      // Detach terminal streaming first
-      await this.terminalHandler.detachFromSession(session_id);
+      await this.terminalHandler.detachFromSession(session_id, connectionState.id);
 
-      // Terminate the session
-      const result = await this.sessionManager.terminateSession(
-        session_id,
-        connectionState.authenticatedUser.username
-      );
+      const result = await this.sessionManager.terminateSession(session_id);
 
       if (result.success) {
         if (connectionState.currentSession === session_id) {
@@ -393,11 +312,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Validate message structure
-   * @param {Object} message - Message to validate
-   * @returns {Object} Validation result
-   */
   validateMessage(message) {
     if (!message || typeof message !== 'object') {
       return {
@@ -423,13 +337,6 @@ class MessageHandler {
     return { isValid: true };
   }
 
-  /**
-   * Validate authentication for protected endpoints
-   * @param {WebSocket} ws - WebSocket connection
-   * @param {Object} message - Message object
-   * @param {Object} connectionState - Connection state
-   * @returns {Promise<boolean>} Whether authentication is valid
-   */
   async validateAuth(ws, message, connectionState) {
     if (!connectionState.authenticatedUser) {
       this.sendError(ws, 'UNAUTHORIZED', 'Authentication required', false);
@@ -449,12 +356,6 @@ class MessageHandler {
     return true;
   }
 
-  /**
-   * Send a formatted response message
-   * @param {WebSocket} ws - WebSocket connection
-   * @param {string} type - Response type
-   * @param {Object} data - Response data
-   */
   sendResponse(ws, type, data) {
     try {
       if (ws.readyState !== ws.OPEN) {
@@ -475,13 +376,6 @@ class MessageHandler {
     }
   }
 
-  /**
-   * Send an error message
-   * @param {WebSocket} ws - WebSocket connection
-   * @param {string} errorCode - Error code
-   * @param {string} message - Error message
-   * @param {boolean} retryable - Whether the error is retryable
-   */
   sendError(ws, errorCode, message, retryable) {
     this.sendResponse(ws, 'error', {
       error_code: errorCode,
@@ -490,36 +384,10 @@ class MessageHandler {
     });
   }
 
-  /**
-   * Get supported message types
-   * @returns {Array} List of supported message types
-   */
   getSupportedMessageTypes() {
     return Object.keys(this.messageRoutes);
   }
 
-  /**
-   * Get message routing statistics
-   * @returns {Object} Routing statistics
-   */
-  getRoutingStats() {
-    return {
-      supported_message_types: this.getSupportedMessageTypes(),
-      total_routes: Object.keys(this.messageRoutes).length,
-      authentication_required: [
-        'session_list_request',
-        'session_create_request',
-        'session_connect_request',
-        'session_disconnect_request',
-        'session_status_request',
-        'session_terminate_request',
-        'terminal_input',
-        'special_key_input',
-        'terminal_resize'
-      ],
-      public_endpoints: ['auth_request', 'ping']
-    };
-  }
 }
 
 module.exports = MessageHandler;

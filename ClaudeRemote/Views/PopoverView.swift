@@ -29,6 +29,8 @@ private struct ConnectingView: View {
                 ProgressView().scaleEffect(0.7)
                 Text("Connecting...").foregroundColor(.secondary)
             }
+            Button("Quit") { NSApplication.shared.terminate(nil) }
+                .buttonStyle(.plain)
         }
         .padding(.vertical, 8)
     }

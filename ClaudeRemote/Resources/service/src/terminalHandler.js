@@ -1,199 +1,93 @@
 class TerminalHandler {
   constructor(config, sessionManager) {
-    this.config = config;
-    this.sessionManager = sessionManager;
-    this.activeStreams = new Map(); // sessionId -> stream info
-
-    console.log('🖥️  TerminalHandler initialized');
+    this.pty = sessionManager.pty;
+    // Map<sessionId, Set<connectionId>>
+    this.activeSessions = new Map();
   }
 
-  async attachToSession(sessionId, websocket, connectionState = null) {
-    try {
-      console.log(`📡 Attaching to terminal session: ${sessionId}`);
-
-      const sessionStatus = await this.sessionManager.getSessionStatus(sessionId);
-      if (!sessionStatus.success) {
-        throw new Error(`Session not found: ${sessionId}`);
-      }
-
-      const streamInfo = {
-        sessionId,
-        websocket,
-        connectionState,
-        isActive: true,
-        attachedAt: new Date().toISOString()
-      };
-
-      this.activeStreams.set(sessionId, streamInfo);
-
-      await this.startOutputStreaming(sessionId);
-
-      console.log(`✅ Attached to terminal session: ${sessionId}`);
-
-      return { success: true };
-    } catch (error) {
-      console.error(`❌ Error attaching to session ${sessionId}:`, error);
-      return { success: false, error: error.message };
+  // cols/rows passed through from connectionState so the initial tmux attach
+  // uses the client's actual screen size — avoids the aggressive-resize reflow
+  // that happened with the old hardcoded 80x24. Defaults match main branch's
+  // generous starting size so Claude's output isn't word-wrapped too early.
+  async attachToSession(sessionId, connectionId, ws, cols = 220, rows = 50) {
+    // Detach any existing PTY for this connection before creating a new one.
+    // Each call to attachToSession would otherwise leak a PTY that keeps streaming
+    // to the same WebSocket, producing duplicated/interleaved output on every reconnect.
+    if (this.activeSessions.get(sessionId)?.has(connectionId)) {
+      this.pty.detachClient(sessionId, connectionId);
+      this.activeSessions.get(sessionId).delete(connectionId);
     }
-  }
 
-  async detachFromSession(sessionId) {
-    try {
-      console.log(`🔌 Detaching from terminal session: ${sessionId}`);
-
-      const streamInfo = this.activeStreams.get(sessionId);
-      if (streamInfo) {
-        streamInfo.isActive = false;
-        this.activeStreams.delete(sessionId);
-      }
-
-      console.log(`✅ Detached from terminal session: ${sessionId}`);
-      return { success: true };
-    } catch (error) {
-      console.error(`❌ Error detaching from session ${sessionId}:`, error);
-      return { success: false, error: error.message };
+    // Populate xterm scrollback with tmux history ABOVE the current visible pane.
+    // tmux attach-session only redraws the current screen — it never sends past history,
+    // which is why the xterm widget's scrollback was nearly empty before this fix.
+    // We use -E -1 (stop before the visible pane) so there's zero overlap with the
+    // full-screen redraw that tmux attach-session sends immediately after.
+    const history = this.pty.getScrollback(sessionId);
+    if (history && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'terminal_output', data: { session_id: sessionId, output: history } }));
     }
+
+    this.pty.attachClient(sessionId, connectionId,
+      (data) => {
+        if (ws.readyState === 1) {
+          // Strip alternate-screen enter/exit sequences so Claude's conversation
+          // stays on the main screen buffer and is scrollable in the terminal widget.
+          // Claude uses \x1b[?1049h to enter alternate screen — without this strip,
+          // scrolling up shows old shell history instead of the chat.
+          // The clear+reposition sequences (\x1b[2J\x1b[H) that follow still run,
+          // giving Claude a clean canvas on the main screen.
+          const out = data.replace(/\x1b\[\?1049[hl]/g, '');
+          ws.send(JSON.stringify({ type: 'terminal_output', data: { session_id: sessionId, output: out } }));
+        }
+      },
+      () => {
+        // tmux session died — notify client
+        if (ws.readyState === 1)
+          ws.send(JSON.stringify({ type: 'status_update', data: { session_id: sessionId, status: 'idle' } }));
+      },
+      cols,
+      rows
+    );
+
+    if (!this.activeSessions.has(sessionId)) this.activeSessions.set(sessionId, new Set());
+    this.activeSessions.get(sessionId).add(connectionId);
   }
 
-  async sendInput(sessionId, input, sequenceNumber = null) {
-    try {
-      const streamInfo = this.activeStreams.get(sessionId);
-      if (!streamInfo || !streamInfo.isActive) {
-        throw new Error(`No active stream for session: ${sessionId}`);
-      }
+  async detachFromSession(sessionId, connectionId) {
+    this.pty.detachClient(sessionId, connectionId);
+    this.activeSessions.get(sessionId)?.delete(connectionId);
+    if (this.activeSessions.get(sessionId)?.size === 0) this.activeSessions.delete(sessionId);
+  }
 
-      const result = await this.sessionManager.pty.sendKeys(sessionId, input);
+  async sendInput(sessionId, connectionId, input) {
+    this.pty.sendInput(sessionId, connectionId, input);
+  }
 
-      if (!result.success) {
-        throw new Error(`Failed to send input: ${result.error}`);
-      }
+  async handleSpecialKeys(sessionId, connectionId, key) {
+    const keyMap = { enter: '\r', escape: '\x1b', tab: '\t', ctrl_c: '\x03', ctrl_d: '\x04', ctrl_z: '\x1a' };
+    this.pty.sendInput(sessionId, connectionId, keyMap[key] ?? '');
+  }
 
-      console.log(`⌨️  Input sent to session ${sessionId}: ${input.substring(0, 50)}${input.length > 50 ? '...' : ''}`);
-
-      return { success: true };
-    } catch (error) {
-      console.error(`❌ Error sending input to session ${sessionId}:`, error);
-      return { success: false, error: error.message };
+  async resizeTerminal(sessionId, connectionId, rows, cols) {
+    if (rows < 1 || rows > 200 || cols < 1 || cols > 500) {
+      return { success: true, terminalSize: { rows, cols } }; // ignore bogus dimensions
     }
-  }
-
-  async handleSpecialKeys(sessionId, key, modifiers = []) {
-    try {
-      const keyMappings = {
-        'ctrl_c': 'ctrl_c',
-        'ctrl_d': 'ctrl_d',
-        'ctrl_z': 'ctrl_z',
-        'enter': 'enter',
-        'escape': 'escape',
-        'tab': 'tab'
-      };
-
-      const ptyKey = keyMappings[key.toLowerCase()];
-      if (!ptyKey) {
-        throw new Error(`Unknown special key: ${key}`);
-      }
-
-      const result = await this.sessionManager.pty.sendKeys(sessionId, '', ptyKey);
-
-      if (!result.success) {
-        throw new Error(`Failed to send special key: ${result.error}`);
-      }
-
-      return { success: true };
-    } catch (error) {
-      console.error(`❌ Error sending special key to session ${sessionId}:`, error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  async resizeTerminal(sessionId, rows, cols) {
-    try {
-      if (rows < 1 || rows > 200 || cols < 1 || cols > 500) {
-        throw new Error('Invalid terminal dimensions');
-      }
-
-      const session = await this.sessionManager.state.getSession(sessionId);
-      if (!session) {
-        // Session not yet in state (resize raced ahead of connect) — ignore silently
-        return { success: true, terminalSize: { rows, cols } };
-      }
-
-      const result = await this.sessionManager.pty.resizeSession(sessionId, rows, cols);
-
-      if (!result.success) {
-        throw new Error(`Failed to resize terminal: ${result.error}`);
-      }
-
-      console.log(`📐 Terminal resized for session ${sessionId}: ${cols}x${rows}`);
-
+    // Guard: resize may race ahead of connect (borrowed from main) — silently ignore
+    if (!this.activeSessions.get(sessionId)?.has(connectionId)) {
       return { success: true, terminalSize: { rows, cols } };
-    } catch (error) {
-      console.error(`❌ Error resizing terminal for session ${sessionId}:`, error);
-      return { success: false, error: error.message };
     }
+    this.pty.resizeClient(sessionId, connectionId, cols, rows);
+    return { success: true, terminalSize: { rows, cols } };
   }
 
-  async startOutputStreaming(sessionId) {
-    const streamInfo = this.activeStreams.get(sessionId);
-    if (!streamInfo) return;
-
-    console.log(`📡 Starting real-time PTY streaming for session: ${sessionId}`);
-
-    this.sessionManager.pty.onData(sessionId, (error, data) => {
-      try {
-        if (error) {
-          console.error(`❌ PTY data error for session ${sessionId}:`, error);
-          return;
-        }
-
-        if (!streamInfo.isActive) return;
-
-        if (data && streamInfo.websocket && streamInfo.websocket.readyState === 1) {
-          if (streamInfo.connectionState) {
-            streamInfo.connectionState.lastActivity = Date.now();
-          }
-
-          streamInfo.websocket.send(JSON.stringify({
-            type: 'terminal_output',
-            data: {
-              session_id: sessionId,
-              output: data,
-              timestamp: new Date().toISOString(),
-              real_time: true
-            }
-          }));
-        }
-      } catch (error) {
-        console.error(`❌ Output streaming error for session ${sessionId}:`, error);
-      }
-    });
-  }
-
-  getStreamStatus() {
-    const activeStreams = Array.from(this.activeStreams.values());
-
-    return {
-      activeStreams: activeStreams.length,
-      totalStreams: activeStreams.length,
-      streams: activeStreams.map(stream => ({
-        sessionId: stream.sessionId,
-        isActive: stream.isActive,
-        attachedAt: stream.attachedAt,
-        websocketState: stream.websocket ? stream.websocket.readyState : null
-      }))
-    };
-  }
-
-  getActiveStreams() {
-    return Array.from(this.activeStreams.keys());
-  }
+  getActiveStreams() { return [...this.activeSessions.keys()]; }
 
   async cleanup() {
-    console.log('🧹 Cleaning up terminal streams...');
-    for (const sessionId of this.activeStreams.keys()) {
-      await this.detachFromSession(sessionId);
+    for (const [sessionId, clients] of this.activeSessions) {
+      for (const clientId of clients) this.pty.detachClient(sessionId, clientId);
     }
-    console.log('✅ Terminal streams cleanup complete');
+    this.activeSessions.clear();
   }
 }
 
