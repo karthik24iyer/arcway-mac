@@ -118,10 +118,9 @@ class SessionManager {
   }
 
   async killAllActiveSessions() {
-    const runningSessions = await this.pty.listSessions();
+    const runningSessions = this.pty.listSessions();
     for (const { name: sessionId } of runningSessions) {
-      await this.pty.killSession(sessionId);
-      await this.state.deleteSession(sessionId);
+      this.pty.killSession(sessionId);
     }
     if (runningSessions.length > 0) {
       console.log(`🧹 Killed ${runningSessions.length} active PTY session(s) on client reconnect`);

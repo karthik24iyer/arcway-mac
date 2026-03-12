@@ -1,6 +1,5 @@
 const pty = require('node-pty');
 const { execSync, spawnSync } = require('child_process');
-const { normalizeTmuxSGR } = require('./sgrNormalizer');
 
 class PTYInterface {
   constructor(config) {
@@ -62,6 +61,12 @@ class PTYInterface {
 
   resizeClient(sessionId, clientId, cols, rows) {
     this.sessions.get(sessionId)?.get(clientId)?.ptyProcess.resize(cols, rows);
+  }
+
+  listSessions() {
+    const result = spawnSync('tmux', ['list-sessions', '-F', '#{session_name}']);
+    if (result.status !== 0) return [];
+    return result.stdout.toString().trim().split('\n').filter(Boolean).map(name => ({ name }));
   }
 
   killSession(sessionId) {
